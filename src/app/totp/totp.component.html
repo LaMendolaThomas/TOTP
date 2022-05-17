@@ -1,5 +1,120 @@
-<p>{{key.toString(HEX)}}</p>
-<p>{{base32EncodeKey()}}</p>
-<p>{{time.toString(HEX)}}</p>
-<p>{{hash.toString(HEX)}}</p>
-<p>{{getCalculatedNumber()}}</p>
+<div
+  fxLayout="column"
+  fxLayoutGap="10px"
+  fxLayoutAlign="space-around center"
+  style="padding: 20px"
+>
+  <h1>2FA mit TOTP</h1>
+
+  <mat-card fxFlex>
+    <mat-card-title>Generieter Schlüssel - 160 bit:</mat-card-title>
+    <mat-card-subtitle>{{ key.toString(HEX) }}</mat-card-subtitle>
+    <mat-card-content
+      >Hierbei handelt es sich um einen geheimein zufällig generierten
+      Schlüssel.</mat-card-content
+    >
+  </mat-card>
+
+  <mat-icon fxFlex>arrow_drop_down</mat-icon>
+
+  <mat-card fxFlex>
+    <mat-card-title>Schlüssel Base32-Encoded:</mat-card-title>
+    <mat-card-subtitle>{{
+      base32EncodeKey().match(REG)?.join(" ")
+    }}</mat-card-subtitle>
+    <mat-card-header
+      fxLayout="column"
+      fxLayoutGap="10px"
+      fxLayoutAlign="space-around center"
+    >
+      <qr-code
+        [value]="
+          'otpauth://totp/TOTP_Vortrag?secret=' +
+          base32EncodeKey() +
+          '&issuer=Systeme'
+        "
+        [size]="350"
+        fxFlex
+      ></qr-code>
+    </mat-card-header>
+    <mat-card-content>
+      Der eben generierte Schlüssel wird nun Base32-Encoded um ihn besser lesbar
+      zu machen.<br />Dieser Schlüssel kann dann verwendet werden um ihn in der
+      AUTH-App zu registrieren.<br />Zudem wird daraus ein QR-Code generiert. Er
+      enthält folgende URL:<br /><br /><b>
+        {{
+          "otpauth://totp/TOTP_Vortrag?secret=" +
+            base32EncodeKey() +
+            "&issuer=Systeme"
+        }}</b
+      >
+    </mat-card-content>
+  </mat-card>
+
+  <mat-icon fxFlex>arrow_drop_down</mat-icon>
+
+  <mat-card fxFlex>
+    <mat-card-title>Zeit ermitteln:</mat-card-title>
+    <mat-card-subtitle>{{ time.toString(HEX) }}</mat-card-subtitle>
+    <mat-card-content>
+      Dazu wird der Aktuelle Timestamp in Sekunden durch 30 geteilt und
+      abgerundet. Dadurch erhält man einen Zeitstempel der sich alle 30 Sekunden
+      ändert. Dieser wird dann in HEX umgewandelt und die fehlenden Stellen mit
+      Nullen aufgefüllt.
+    </mat-card-content>
+  </mat-card>
+
+  <mat-icon fxFlex>arrow_drop_down</mat-icon>
+
+  <mat-card fxFlex>
+    <mat-card-title>Hash ermitteln:</mat-card-title>
+    <mat-card-subtitle>{{ hash.toString(HEX) }}</mat-card-subtitle>
+    <mat-card-content>
+      Dazu wird der <b>HMAC-SHA1</b> Algorithmus verwendet, mit dem Zeitstempel
+      als Message und dem Schlüssel als Key.
+    </mat-card-content>
+  </mat-card>
+
+  <mat-icon fxFlex>arrow_drop_down</mat-icon>
+
+  <mat-card fxFlex>
+    <mat-card-title>Dynamic Truncation durchführen:</mat-card-title>
+    <mat-card-subtitle>{{ formatHash() }}</mat-card-subtitle>
+    <mat-card-content>
+      Bei der <b>Dynamic Truncation</b> werden zunächst die Letzten 4 Bit des
+      Hash-Werts betrachtet. Diese Bit geben den Offset der Truncation an. In
+      diesem Fall beträgt der Offset {{ off }} Bytes. Beim durch den Offset
+      angegebenen Byte beginnt man nun 4 Bytes zu extrahieren. Diese Bytes sind
+      hier im Hash hervorgehoben.
+    </mat-card-content>
+  </mat-card>
+
+  <mat-icon fxFlex>arrow_drop_down</mat-icon>
+
+  <mat-card fxFlex>
+    <mat-card-title>TOTP-Code berechnen:</mat-card-title>
+    <mat-card-subtitle>{{ getCalculatedNumber() }}</mat-card-subtitle>
+    <mat-card-content>
+      Um den TOTP-Code zu berechnen wird beim eben berechneten Wert zuerst das
+      erste Bit 0 gesetzt.<br />Dann wird die daraus resultierende Zahl modulo
+      1000000 gemacht. Die Lösung dieser Rechnung gibt dann den TOTP-Code,
+      welcher alle 30-Sekunden erneuert werden muss.
+    </mat-card-content>
+  </mat-card>
+
+  <mat-icon fxFlex>arrow_drop_down</mat-icon>
+
+  <mat-card fxFlex>
+    <mat-card-title>Code:</mat-card-title>
+    <p>{{ getCalculatedNumber(true) }}</p>
+    <mat-progress-bar
+      [value]="(val / 30) * 100"
+      mode="determinate"
+      [color]="prog.value < 30 ? 'warn' : 'primary'"
+      #prog
+    ></mat-progress-bar>
+    <mat-card-content fxLayoutAlign="space-around center"
+      >{{ val }} s</mat-card-content
+    >
+  </mat-card>
+</div>

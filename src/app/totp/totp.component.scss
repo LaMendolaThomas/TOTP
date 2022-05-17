@@ -1,0 +1,29 @@
+/*mat-card{
+  background-color: rgb(34, 30, 30);
+  width: max-content;
+  border-radius: 20px;
+}*/
+
+mat-card{
+  width: max-content;
+  max-width: 70vw;
+}
+
+mat-icon{
+  transform: scale(2);
+}
+
+mat-card-content{
+  font-size: 0.5em;
+}
+
+mat-card-subtitle{
+  font-size: 0.6em;
+}
+
+mat-progress-bar{
+    height: 20px;
+    border-radius: inherit;
+    margin-top: -20px;
+    margin-bottom: 20px;
+}

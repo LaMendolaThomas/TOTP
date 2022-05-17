@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import base32Encode from 'base32-encode';
 import * as crypto from 'crypto-js';
+import { interval } from 'rxjs';
+
+
 
 @Component({
   selector: 'totp-totp',
@@ -12,60 +15,69 @@ export class TotpComponent implements OnInit {
   public key!: crypto.lib.WordArray;
 
   // Der Epoch timer
-  public time!:crypto.lib.WordArray;
+  public time!: crypto.lib.WordArray;
 
   // Der Hash
-  public hash!:crypto.lib.WordArray;
+  public hash!: crypto.lib.WordArray;
 
   // HEX zum Konvertieren
   public HEX = crypto.enc.Hex;
+
+  // Offset
+  public off!:number;
+
+  // Regex
+  public REG = /.{1,4}/g;
+
+  // Wert für Progressbar
+  public val:number = 0;
 
   constructor() {}
 
   ngOnInit(): void {
     // Key hinterlegen
-    //this.key = crypto.lib.WordArray.random(20);
-    this.key = crypto.enc.Hex.parse("ad057be6403fb73a250cf6b1fd6f343564f73b3d");
-
-    /*console.log(this.getEpochIteration());
-
-    console.log(this.generateKey());
-
-    var hex = this.convertStringToUint8(
-      '04ae9095255786d49e6316b1fcc2bc08f4a67687'
-    );
-    //console.log(hex)
-    console.log(base32Encode(hex, 'RFC3548'));
-
-    const key = crypto.enc.Hex.parse(
-      '04ae9095255786d49e6316b1fcc2bc08f4a67687'
-    );
-    console.log(key);*/
-
+    this.key = crypto.lib.WordArray.random(20);
+    //this.key = crypto.enc.Hex.parse('ad057be6403fb73a250cf6b1fd6f343564f73b3d');
 
     this.time = crypto.enc.Hex.parse(this.getEpochIteration());
 
     this.hash = crypto.HmacSHA1(this.time, this.key);
-    //const msg = crypto.enc.Hex.parse('00000000034882ba');
-    /*console.log(msg);
 
-    var hash = crypto.HmacSHA1(msg, key).toString(crypto.enc.Hex);
+    this.off = this.convertStringToUint8(this.hash.toString(this.HEX))[19] & 15;
 
-    console.log(hash);
-    //console.log(this.convertStringToUint8(hash));
-    //console.log(this.convertStringToUint8(hash));
-    var off = this.convertStringToUint8(hash)[19] & 15;
+    setTimeout(()=>{
 
-    console.log(off);
-    const hashcut = hash.substring(off * 2, off * 2 + 8)
-    console.log(hashcut);
-    var numb = Number("0x"+hashcut);
-    console.log(~(1 << 31))
-    numb = numb & (~(1 << 31))
-    console.log(numb)
-    console.log(numb % 1000000)
+      const sub = interval(30000).subscribe( _ =>{
+        this.time = crypto.enc.Hex.parse(this.getEpochIteration());
 
-    //console.log(this.convertStringToUint8(hash)[off] * 256);*/
+        this.hash = crypto.HmacSHA1(this.time, this.key);
+
+        this.off = this.convertStringToUint8(this.hash.toString(this.HEX))[19] & 15;
+      });
+
+      this.time = crypto.enc.Hex.parse(this.getEpochIteration());
+
+      this.hash = crypto.HmacSHA1(this.time, this.key);
+
+      this.off = this.convertStringToUint8(this.hash.toString(this.HEX))[19] & 15;
+
+    },30000 - (Date.now() % 30000) + 50);
+
+    // Wert für Progressbar setzen
+    this.val = Math.floor((30000 - (Date.now() % 30000) )/ 1000);
+
+    // Wert für Progress updaten
+    const sub = interval(1000).subscribe( _ =>{
+      // val dekrementieren
+      this.val--;
+
+      // Val zurücksetzen
+      if(this.val <= 0){
+        this.val = 30 + this.val;
+      }
+    });
+
+
   }
 
   /**
@@ -81,16 +93,9 @@ export class TotpComponent implements OnInit {
   }
 
   /**
-   * Diese Methode erzeugt einen Key
-   * @returns den Key
+   * Diese Methode liefert die Aktuelle Epoch Iteration zurück
+   * @returns die EpochIteration
    */
-  generateKey(): string {
-    // Key erzeugen
-    return crypto.lib.WordArray.random(20)
-      .words.map((number) => number.toString(16))
-      .join('');
-  }
-
   getEpochIteration(): string {
     // EpochTime erzeugen
     const time = Math.floor(Date.now() / 1000 / 30);
@@ -106,6 +111,10 @@ export class TotpComponent implements OnInit {
     return ret;
   }
 
+  /**
+   * Diese Methode wandelt den Schlüssel um
+   * @returns den umgewandelten Schlüssel
+   */
   base32EncodeKey(): string {
     return base32Encode(
       this.convertStringToUint8(this.key.toString(this.HEX)),
@@ -113,15 +122,61 @@ export class TotpComponent implements OnInit {
     );
   }
 
-  getCalculatedNumber():number{
+  /**
+   * Diese Methode berechnet den AUTH-Code
+   * @returns der Auth-Code
+   */
+  getCalculatedNumber(format:boolean = false): string {
+    // Offset berechnen
     var off = this.convertStringToUint8(this.hash.toString(this.HEX))[19] & 15;
 
-    const hashcut = this.hash.toString(this.HEX).substring(off * 2, off * 2 + 8)
+    // Umwandeln
+    const hashcut = this.hash
+      .toString(this.HEX)
+      .substring(off * 2, off * 2 + 8);
 
-    var numb = Number("0x"+hashcut);
+    // Umwandeln
+    var numb = Number('0x' + hashcut);
 
-    numb = numb & (~(1 << 31))
+    // Erstes Bit null setzen
+    numb = numb & ~(1 << 31);
 
-    return numb % 1000000
+    // Modulo rechnen
+    var ret = (numb % 1000000).toString();
+
+    if(format){
+      // Formatieren
+      while(ret.length < 6){
+        // 0 hinzufuegen
+        ret = "0"+ret;
+      }
+
+      // In Mitte teilen
+      ret = ret.substring(0,3)+" "+ret.substring(3,6);
+    }
+
+    // Zurückliefern
+    return ret;
+  }
+
+  /**
+   * Diese Methode formatiert den HashWert
+   * @returns den formatierten HashWert
+   */
+  formatHash(): string {
+    // String berechnen
+    var hash = this.hash.toString(this.HEX);
+
+    // Offset berechnen
+    var off = this.convertStringToUint8(this.hash.toString(this.HEX))[19] & 15;
+
+    // Formatieren
+    return (
+      hash.substring(0, off * 2) +
+      ' -> ' +
+      hash.substring(off * 2, off * 2 + 8) +
+      ' <- ' +
+      hash.substring(off * 2 + 8, undefined)
+    );
   }
 }
