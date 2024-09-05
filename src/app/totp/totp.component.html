@@ -1,104 +1,83 @@
-<div
-  fxLayout="column"
-  fxLayoutGap="10px"
-  fxLayoutAlign="space-around center"
-  style="padding: 20px"
->
-  <h1>2FA mit TOTP</h1>
+<div fxLayout="column" fxLayoutGap="10px" fxLayoutAlign="space-around center" style="padding: 20px">
+  <h1>2FA with TOTP</h1>
 
   <mat-card fxFlex>
-    <mat-card-title>Generieter Schlüssel - 160 bit:</mat-card-title>
+    <mat-card-title>Generated key - 160 bit:</mat-card-title>
     <mat-card-subtitle>{{ key.toString(HEX) }}</mat-card-subtitle>
-    <mat-card-content
-      >Hierbei handelt es sich um einen geheimein zufällig generierten
-      Schlüssel.</mat-card-content
-    >
+    <mat-card-content>This is a secret, randomly generated key.</mat-card-content>
   </mat-card>
 
   <mat-icon fxFlex>arrow_drop_down</mat-icon>
 
   <mat-card fxFlex>
-    <mat-card-title>Schlüssel Base32-Encoded:</mat-card-title>
+    <mat-card-title>Key Base32-Encoded:</mat-card-title>
     <mat-card-subtitle>{{
       base32EncodeKey().match(REG)?.join(" ")
-    }}</mat-card-subtitle>
-    <mat-card-header
-      fxLayout="column"
-      fxLayoutGap="10px"
-      fxLayoutAlign="space-around center"
-    >
-      <qr-code
-        [value]="
-          'otpauth://totp/TOTP_Vortrag?secret=' +
+      }}</mat-card-subtitle>
+    <mat-card-header fxLayout="column" fxLayoutGap="10px" fxLayoutAlign="space-around center">
+      <qr-code [value]="
+          'otpauth://totp/TOTP_Test?secret=' +
           base32EncodeKey() +
-          '&issuer=Systeme'
-        "
-        [size]="350"
-        fxFlex
-      ></qr-code>
+          '&issuer=TOTP'
+        " [size]="350" fxFlex></qr-code>
     </mat-card-header>
     <mat-card-content>
-      Der eben generierte Schlüssel wird nun Base32-Encoded um ihn besser lesbar
-      zu machen.<br />Dieser Schlüssel kann dann verwendet werden um ihn in der
-      AUTH-App zu registrieren.<br />Zudem wird daraus ein QR-Code generiert. Er
-      enthält folgende URL:<br /><br /><b>
+      The key just generated is now base32-encoded to make it easier to read.
+      <br />This key can then be used to register it in the AUTH app.<br />
+      A QR code is also generated from this. It contains the following URL:<br />
+      <br /><b>
         {{
-          "otpauth://totp/TOTP_Vortrag?secret=" +
-            base32EncodeKey() +
-            "&issuer=Systeme"
-        }}</b
-      >
+        "otpauth://totp/TOTP_Test?secret=" +
+        base32EncodeKey() +
+        "&issuer=TOTP"
+        }}</b>
     </mat-card-content>
   </mat-card>
 
   <mat-icon fxFlex>arrow_drop_down</mat-icon>
 
   <mat-card fxFlex>
-    <mat-card-title>Zeit ermitteln:</mat-card-title>
+    <mat-card-title>Determine the time:</mat-card-title>
     <mat-card-subtitle>{{ time.toString(HEX) }}</mat-card-subtitle>
     <mat-card-content>
-      Dazu wird der Aktuelle Timestamp in Sekunden durch 30 geteilt und
-      abgerundet. Dadurch erhält man einen Zeitstempel der sich alle 30 Sekunden
-      ändert. Dieser wird dann in HEX umgewandelt und die fehlenden Stellen mit
-      Nullen aufgefüllt.
+      To do this, the current timestamp in seconds is divided by 30 and rounded down. This produces a timestamp that
+      changes every 30 seconds. This is then converted to HEX and the missing digits are filled with zeros.
     </mat-card-content>
   </mat-card>
 
   <mat-icon fxFlex>arrow_drop_down</mat-icon>
 
   <mat-card fxFlex>
-    <mat-card-title>Hash ermitteln:</mat-card-title>
+    <mat-card-title>Determine hash:</mat-card-title>
     <mat-card-subtitle>{{ hash.toString(HEX) }}</mat-card-subtitle>
     <mat-card-content>
-      Dazu wird der <b>HMAC-SHA1</b> Algorithmus verwendet, mit dem Zeitstempel
-      als Message und dem Schlüssel als Key.
+      The <b>HMAC-SHA1</b> algorithm is used for this, with the timestamp as the message and the generated key as the
+      key.
     </mat-card-content>
   </mat-card>
 
   <mat-icon fxFlex>arrow_drop_down</mat-icon>
 
   <mat-card fxFlex>
-    <mat-card-title>Dynamic Truncation durchführen:</mat-card-title>
+    <mat-card-title>Perform dynamic truncation:</mat-card-title>
     <mat-card-subtitle>{{ formatHash() }}</mat-card-subtitle>
     <mat-card-content>
-      Bei der <b>Dynamic Truncation</b> werden zunächst die Letzten 4 Bit des
-      Hash-Werts betrachtet. Diese Bit geben den Offset der Truncation an. In
-      diesem Fall beträgt der Offset {{ off }} Bytes. Beim durch den Offset
-      angegebenen Byte beginnt man nun 4 Bytes zu extrahieren. Diese Bytes sind
-      hier im Hash hervorgehoben.
+      With <b>Dynamic Truncation</b>, the last 4 bits of the hash value are considered first. These bits specify the
+      offset of the truncation. In this case, the offset is {{ off }} bytes. Four bytes are now extracted starting from
+      the byte
+      specified by the offset. These bytes are highlighted here in the hash.
     </mat-card-content>
   </mat-card>
 
   <mat-icon fxFlex>arrow_drop_down</mat-icon>
 
   <mat-card fxFlex>
-    <mat-card-title>TOTP-Code berechnen:</mat-card-title>
+    <mat-card-title>Calculate TOTP code:</mat-card-title>
     <mat-card-subtitle>{{ getCalculatedNumber() }}</mat-card-subtitle>
     <mat-card-content>
-      Um den TOTP-Code zu berechnen wird beim eben berechneten Wert zuerst das
-      erste Bit 0 gesetzt.<br />Dann wird die daraus resultierende Zahl modulo
-      1000000 gemacht. Die Lösung dieser Rechnung gibt dann den TOTP-Code,
-      welcher alle 30-Sekunden erneuert werden muss.
+      To calculate the TOTP code, the first bit is set to 0 for the value just calculated. Then the resulting number is
+      taken modulo 1000000.
+      The solution of this calculation then gives the TOTP code, which must be renewed every 30 seconds.
     </mat-card-content>
   </mat-card>
 
@@ -107,14 +86,8 @@
   <mat-card fxFlex>
     <mat-card-title>Code:</mat-card-title>
     <p>{{ getCalculatedNumber(true) }}</p>
-    <mat-progress-bar
-      [value]="(val / 30) * 100"
-      mode="determinate"
-      [color]="prog.value < 30 ? 'warn' : 'primary'"
-      #prog
-    ></mat-progress-bar>
-    <mat-card-content fxLayoutAlign="space-around center"
-      >{{ val }} s</mat-card-content
-    >
+    <mat-progress-bar [value]="(val / 30) * 100" mode="determinate" [color]="prog.value < 30 ? 'warn' : 'primary'"
+      #prog></mat-progress-bar>
+    <mat-card-content fxLayoutAlign="space-around center">{{ val }} s</mat-card-content>
   </mat-card>
 </div>
